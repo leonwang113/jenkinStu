@@ -1,0 +1,93 @@
+Day 1 Jenkins basic
+
+Jenkins其实就是个脚本执行器
+Good Practice: 装完插件重启
+
+Jenkins安装
+Require: JDK
+
+docker pull jenkins/jenkins:2.289.1-lts-centos
+docker run -itd --name jenkins -p 8080:8080 -p 50000:50000 -e JAVA_OPTS="-Dorg.apache.commons.jelly.tags.fmt.timeZone='Asia/Shanghai'" --privileged=true  -v /data/cicd2/jenkins:/var/jenkins_home docker.io/jenkins/jenkins:2.289.1-lts-centos
+Jenkins slave安装
+#下载
+echo 003ef31a220fbcddf78596390d39355c77eac855557fbbc75cd136db53c9cdea > secret-file
+nohup java -jar agent.jar -jnlpUrl http://192.168.1.200:8080/computer/build01/jenkins-agent.jnlp -secret @secret-file -workDir "/opt/jenkins"  >>/dev/null &
+
+
+
+
+remote trigger
+http://docker1/job/buildPipeline/build?token=devops
+http://docker1/job/buildPipeline/buildWithParameters?token=devops&Version=1.1.8%Env=prod
+
+
+
+获取凭据
+凭据-> 系统-> 全局凭据
+
+
+
+Gitlab 安装
+
+## 下载镜像 
+docker pull gitlab/gitlab-ce:14.0.0-ce.0 
+## 创建数据目录 
+mkdir -p /data/cicd/gitlab/{config,logs,data} 
+chmod 777 -R /data/cicd/gitlab/ 
+## 运行 
+docker run -d  -p 443:443 -p 80:80 -p 222:22 --name gitlab \
+--restart always \
+-v /data/cicd/gitlab/config:/etc/gitlab \
+-v /data/cicd/gitlab/logs:/var/log/gitlab \
+-v /data/cicd/gitlab/data:/var/opt/gitlab \
+gitlab/gitlab-ce:14.0.0-ce.0
+
+Root 密码重置
+
+[root@docker1 cicd2]# docker exec -it ccf60ff01a55 bash
+root@ccf60ff01a55:/# gitlab-rails console -e production
+irb(main):005:0> user = User.where(id:1).first
+=> #<User id:1 @root>
+irb(main):006:0> user.password ='Emxxx'
+=> "Empxxx"
+irb(main):007:0> user.password_confirmation ='Emoxxx'
+=> "Emoxxx"
+irb(main):008:0> user.save
+
+Gitlab runner安装
+# wget https://mirrors.tuna.tsinghua.edu.cn/gitlab-runner/yum/el8-x86_64/gitlab-runner-14.0.0-1.x86_64.rpm
+# rpm -ivh gitlab-runner-14.0.0-1.x86_64.rpm
+
+Runner 注册
+[root@docker1 ~]# gitlab-runner register
+Enter the GitLab instance URL (for example, https://gitlab.com/):
+http://192.168.1.200
+Enter the registration token:
+pGLbUXBVrQGjDpqjNEnz
+Enter a description for the runner:
+[docker1]: devops03
+Enter tags for the runner (comma-separated):
+build,go,java,k8sbuild
+Registering runner... succeeded                     runner=pGLbUXBV
+Enter an executor: docker+machine, docker, docker-ssh, parallels, shell, kubernetes, custom, ssh, virtualbox, docker-ssh+machine:
+shell
+Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!
+[root@docker1 ~]# gitlab-runner list
+Runtime platform                                    arch=amd64 os=linux pid=10225 revision=3b6f852e version=14.0.0
+Listing configured runners                          ConfigFile=/etc/gitlab-runner/config.toml
+devops03                                            Executor=shell Token=7LBZoAGfZbz6fp7F71x3 URL=http://192.168.1.200
+
+
+
+Runner type
+Runners can be:
+* shared - Runs jobs from all unassigned projects.
+* group - Runs jobs from all unassigned projects in its group.
+* specific - Runs jobs from assigned projects.
+* locked - Cannot be assigned to other projects.
+* paused - Not available to run jobs.
+
+
+
+
+
